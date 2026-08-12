@@ -8,6 +8,24 @@
 - Generate SBOM, scan, sign/attest, and promote the same digest.
 - Use `.dockerignore`; order layers for stable dependency caching.
 
+An image is an immutable layered filesystem/config template; a container is a running process using that image plus writable runtime state. Containers share the host kernel, so namespaces/cgroups and runtime controls are isolation boundaries—not separate virtual machines. A registry stores manifests/layers by tag and digest; deploy by digest for immutability.
+
+```dockerfile
+FROM golang:1.24 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /out/app ./cmd/app
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/app /app
+USER nonroot:nonroot
+ENTRYPOINT ["/app"]
+```
+
+The example demonstrates multi-stage build and non-root runtime; pin base digests and verify current language/runtime versions in a real implementation.
+
 ## Kubernetes workload contract
 
 ```text
@@ -17,6 +35,8 @@ Service -> endpoints/EndpointSlices -> Ready pods
 Ingress/Gateway -> controller -> external load balancer
 ```
 
+Kubernetes is a reconciliation system: users submit desired objects to the API, controllers converge them, the scheduler chooses nodes and kubelets run pods. ConfigMaps provide configuration; Secrets need RBAC/encryption/external lifecycle; Services select ready pod endpoints; controllers maintain replicas and rollout state.
+
 ## Resources and quality of service
 
 Requests drive scheduling; limits constrain runtime. CPU throttles at its limit; memory overrun can lead to OOM termination. Set requests from observed demand and tune limits from risk, load tests, and node capacity. Avoid both unbounded workloads and arbitrary equal request/limit defaults.
@@ -24,6 +44,21 @@ Requests drive scheduling; limits constrain runtime. CPU throttles at its limit;
 ## Safe rollout
 
 Use multiple replicas, readiness/startup probes, controlled surge/unavailable settings, topology spread, PDBs for voluntary disruptions, graceful termination, and backward-compatible dependencies. Watch rollout status and service SLOs; pause/rollback on evidence.
+
+For EKS, connect every Kubernetes object to AWS dependencies: VPC CNI supplies pod IPs, AWS Load Balancer Controller builds ALB/NLB paths, CSI drivers provision EBS/EFS, Pod Identity/IRSA supplies AWS permissions, and node groups/Fargate supply runtime capacity. A YAML-correct object can still fail because an AWS route, IAM/KMS policy, subnet IP pool or quota is wrong.
+
+## Docker and Kubernetes interview comparisons
+
+| Concept | Strong distinction |
+|---|---|
+| Image vs container | Immutable template versus running process |
+| CMD vs ENTRYPOINT | Default arguments/command versus primary executable semantics; forms interact |
+| Volume vs image layer | Persistent/runtime data versus immutable build content |
+| Deployment vs StatefulSet | Interchangeable stateless replicas versus stable identity/storage ordering |
+| Service vs Ingress | Stable service endpoint versus external HTTP routing declaration |
+| ConfigMap vs Secret | Non-secret config versus sensitive API object; both need access governance |
+| Request vs limit | Scheduling reservation versus runtime cap |
+| Namespace vs cluster/account | Logical policy scope versus stronger blast-radius boundary |
 
 ## Debugging order
 

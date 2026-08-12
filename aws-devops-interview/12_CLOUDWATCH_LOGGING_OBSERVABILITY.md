@@ -24,6 +24,18 @@ source -> structured collection -> centralized account/store -> search/detect/ar
 
 Include timestamp, severity, service, environment, version, request/trace ID, and non-sensitive context. Never log secrets/tokens. Avoid unbounded high-cardinality metric dimensions.
 
+CloudWatch Logs Insights queries log groups without building a separate index management workflow; control scan range/cost and use structured fields. CloudTrail records AWS API/control activity and selected data events—not application logs. VPC Flow Logs show flow metadata—not payload. X-Ray/OpenTelemetry-style tracing connects service segments and downstream timing but sampling and context propagation determine visibility.
+
+Prometheus scrapes/receives time-series metrics with labels; Grafana visualizes and alerts across supported data sources. In Kubernetes, monitor workload RED, node/pod USE, scheduler/DNS/CNI/CSI/controllers and deployment events. High-cardinality labels such as request IDs or raw user identifiers can destabilize cost/performance; put those in logs/traces instead.
+
+```text
+CloudWatch/Prometheus metrics -> alarms/SLO dashboards
+structured logs -------------> Logs Insights/search/archive
+trace context ----------------> X-Ray/trace backend
+CloudTrail + Flow Logs -------> audit/network evidence
+                               \-> Grafana/incident view
+```
+
 ## Incident correlation
 
 Begin with impact and change timeline. Compare affected/unaffected slices by AZ, version, endpoint, dependency, or tenant. Move from SLO to service metrics, traces, logs, then infrastructure. Preserve request IDs and time synchronization.

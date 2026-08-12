@@ -9,6 +9,8 @@ viewer -> WAF -> CloudFront cache behavior -> edge cache -> origin
 
 The cache key determines object variants. The origin request policy determines what CloudFront forwards. Forwarding everything reduces cache efficiency and can leak unnecessary viewer context to the origin.
 
+An origin can be S3, ALB, API endpoint or custom HTTP service. Ordered cache behaviors match paths and select origin, allowed methods, protocol, cache/origin policies and edge functions. Cache TTL is influenced by behavior policy and origin cache headers. Invalidations remove cached paths but cost/time and race behavior make versioned object keys a better normal release mechanism.
+
 ## Design choices
 
 | Concern | Approach |
@@ -26,6 +28,10 @@ Inspect behavior match order, cache key, response cache headers, minimum/default
 ## WAF
 
 Start managed rules in count mode, inspect sampled requests/logs, then enforce with scoped exclusions. Add rate-based rules and narrowly designed custom rules. WAF is Layer 7 filtering; Shield addresses DDoS protections; neither replaces secure application code, authorization, or origin isolation.
+
+Signed URLs suit individual objects; signed cookies suit access to groups of paths. Both require trusted signing keys and expiry policy. Viewer headers, cookies and query strings affect cache fragmentation; forward only what the origin needs. Use modern TLS policies/certificates and decide whether origin TLS validates the same or a separate hostname.
+
+For **502**, inspect origin DNS/TLS/protocol/connection failures. For **504**, inspect origin response timeout and downstream latency. Correlate CloudFront request ID, standard/real-time logs as justified, WAF logs and origin logs before changing cache behavior.
 
 ## 403 workflow
 

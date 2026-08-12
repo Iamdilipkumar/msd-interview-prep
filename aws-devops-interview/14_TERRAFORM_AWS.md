@@ -9,12 +9,65 @@ configuration + variables + provider APIs + current state
 
 Terraform reconciles declared configuration using state and provider APIs. State maps resource addresses to remote objects and can contain sensitive data; treat it as critical infrastructure data.
 
+### Language building blocks
+
+| Construct | Use | Interview caution |
+|---|---|---|
+| provider | Configures API integration/version | Alias providers for explicit cross-account/Region use |
+| variable | Module input | Type/validate; `sensitive` only redacts display |
+| local | Named derived expression | Do not hide complex policy logic |
+| output | Exposes module/root value | Avoid exporting secrets |
+| data source | Reads existing remote information | Plan depends on read permissions/current data |
+| `for_each` | One instance per stable key | Changing keys changes resource addresses |
+| `count` | Indexed repeated instances | Removing/reordering lists can shift addresses |
+| `depends_on` | Adds hidden dependency explicitly | Prefer natural references; broad dependencies serialize plans |
+| lifecycle | Create/destroy/change behavior | `ignore_changes` can conceal drift |
+
+```hcl
+variable "environment" {
+  type = string
+  validation {
+    condition     = contains(["test", "production"], var.environment)
+    error_message = "Use an approved environment name."
+  }
+}
+
+locals {
+  common_tags = {
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_s3_bucket" "logs" {
+  for_each = toset(["application", "audit"])
+  bucket   = "example-${var.environment}-${each.key}"
+  tags     = local.common_tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+output "log_bucket_names" {
+  value = values(aws_s3_bucket.logs)[*].id
+}
+```
+
+The example uses generic names and omits production controls for brevity; real modules add encryption, versioning, access and retention resources according to current provider schemas.
+
 ## Production layout
 
 - Small, cohesive root modules per lifecycle/blast radius—not one state for an entire enterprise.
 - Reusable versioned child modules with clear inputs, outputs, constraints, and tests.
 - Separate state and credentials by environment/account; do not use CLI workspaces as a security boundary.
 - CI assumes short-lived AWS roles, produces a reviewed saved plan, and applies that exact artifact under controls.
+
+For multi-account deployments, configure explicit provider aliases whose credentials come from short-lived assumed roles. Keep production state and deploy roles separate from nonproduction. Environment directories/root modules provide clearer security/lifecycle boundaries than using Terraform CLI workspaces alone; workspaces are state namespaces, not IAM isolation.
 
 ## S3 backend
 
@@ -43,6 +96,8 @@ fmt -> validate -> lint/security/test -> plan -> human/policy gate
 
 Plan output may contain secrets. Restrict artifact/log access and retention. Never run unreviewed speculative plans with production credentials.
 
+`terraform destroy` is a normal graph operation with extreme consequences, not a cleanup shortcut. Protect production through permissions, approvals, retention controls and recoverability. `-target` and `-replace` are exceptional tools: review the subsequent full plan because targeted operations can leave configuration only partially converged.
+
 ## Drift
 
 Detect with scheduled read-only plans and cloud configuration controls. Decide whether the console change was authorized and should be imported into code, or whether code should restore declared state. Do not automatically overwrite emergency changes without understanding them.
@@ -65,6 +120,8 @@ Terraform records successful operations and returns an error for the failed rema
 ## Refactoring safely
 
 Use `moved` blocks for address changes, `import` blocks/import for existing resources, and explicit version upgrades. Review destroy/recreate indicators such as “forces replacement.” Use lifecycle controls sparingly; `ignore_changes` can conceal dangerous drift.
+
+A moved block records an old-to-new resource address in configuration so reviewers and future runs understand the refactor. It is safer and more repeatable than an undocumented one-time state command when the mapping can be expressed declaratively.
 
 ## Module design
 

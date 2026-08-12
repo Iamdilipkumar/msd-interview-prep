@@ -44,6 +44,14 @@ Resolve DNS -> Source/destination -> Path/routes -> Allow SG/NACL/policy -> Retu
 -> listener/app -> dependency
 ```
 
+### S3 security checklist
+
+```text
+Block Public Access -> Object Ownership/policies -> least-privilege identity
+-> TLS + SSE-S3/SSE-KMS/key policy -> versioning/Object Lock/backup
+-> lifecycle -> CloudTrail/data evidence -> tested restore
+```
+
 ### IAM: PARC
 
 ```text
@@ -58,11 +66,26 @@ DNS -> listener/cert -> rule -> target registration -> health -> SG -> port -> a
 502 bad target response | 503 no available healthy target | 504 slow target
 ```
 
+### EC2
+
+```text
+status checks -> addressing/DNS -> route -> SG/NACL -> listener/host firewall
+-> process + CPU/memory -> filesystem/inodes -> EBS IO -> dependency/change
+```
+
 ### Kubernetes
 
 ```text
 desired state -> events -> pod status -> previous logs -> process/probes
 -> Service endpoints -> DNS/policy -> ingress/LB -> dependency -> node/cloud
+```
+
+### ECS
+
+```text
+service event/stopped reason -> task definition/image/runtime
+-> execution role + ECR/secrets/log path -> task ENI/DNS/routes
+-> container health -> target group -> task role -> dependency
 ```
 
 ### Database
@@ -77,6 +100,14 @@ user latency -> transaction/query -> waits/locks/plan -> connections
 ```text
 freeze writers -> preserve state/logs -> inspect cloud + state + config
 -> fresh plan -> fix root cause -> review -> apply -> verify
+```
+
+### CI/CD
+
+```text
+PR/review -> lint/unit/security -> build once -> scan/sign/SBOM -> registry digest
+-> integration -> reviewed Terraform plan/apply -> approval -> canary/blue-green
+-> smoke + SLO gate -> promote or rollback/roll forward
 ```
 
 ### Incident

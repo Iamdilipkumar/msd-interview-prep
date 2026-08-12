@@ -12,9 +12,13 @@ No single “secure service” replaces layered controls, ownership, monitoring,
 
 Use Secrets Manager for managed secret lifecycle/rotation and Parameter Store for hierarchical configuration and secret use cases matching its capabilities. Applications retrieve at runtime using workload identity. Cache cautiously, rotate with backward-compatible steps, restrict resource policies, and audit access. Never place secrets in Git, images, user data, Terraform values, logs, or CI output.
 
+Parameter Store supports plain and encrypted parameter patterns with hierarchy and versioning capabilities; Secrets Manager is purpose-built for secret lifecycle and rotation integrations. Choose from rotation, size/features, throughput, policy, cost and operational needs. Neither service makes a secret safe if the workload role is over-privileged or the value is printed to logs.
+
 ## KMS mental model
 
 KMS keys protect data keys in envelope encryption. Authorization may involve identity policy, key policy, grants, conditions/encryption context, organization controls, and service integration. KMS keys are regional resources; multi-Region keys have specific replication semantics and are not a universal DR shortcut.
+
+Encryption **at rest** protects stored media/copies under a key boundary; encryption **in transit** protects network sessions with authenticated TLS. Neither replaces authorization, integrity validation, secret handling or endpoint security. Define certificate trust/rotation and key deletion/recovery procedures before production.
 
 | Choice | Consider |
 |---|---|

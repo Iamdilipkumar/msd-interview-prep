@@ -8,6 +8,8 @@ application cache -> OS cache -> recursive resolver -> root/TLD -> authoritative
 
 TTL controls cache lifetime, not instantaneous cutover. Existing connections can outlive DNS records. Negative answers may also be cached.
 
+A public hosted zone is authoritative on the internet after correct registrar delegation. A private hosted zone answers only through associated VPC/Resolver contexts. `A` maps a name to IPv4, `AAAA` to IPv6, and `CNAME` aliases one non-apex name to another. A Route 53 Alias is an AWS extension that can target supported AWS resources and work at the zone apex.
+
 ## Routing policies
 
 | Policy | Use | Trap |
@@ -24,6 +26,8 @@ Alias records integrate with supported AWS resources and can be used at the zone
 ## Hybrid DNS
 
 Route 53 Resolver inbound endpoints let on-premises resolvers query selected AWS namespaces; outbound endpoints and forwarding rules send selected queries toward on-premises DNS. Deploy endpoints redundantly, associate rules correctly, allow TCP/UDP 53, and prevent forwarding loops.
+
+Route 53 health checks can evaluate endpoints or calculated checks and influence supported routing records. They do not prove every dependency or data plane. Design thresholds, regions, false-positive behavior and a recovery control plane independent enough to operate during the failure.
 
 ## Failure diagnosis
 

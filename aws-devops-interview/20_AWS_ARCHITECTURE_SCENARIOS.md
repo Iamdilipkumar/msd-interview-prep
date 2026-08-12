@@ -2,7 +2,7 @@
 
 ## Interview framework
 
-Before drawing, clarify users/traffic, data model and growth, consistency, compliance, dependencies, regions, RTO/RPO, budget, and team skills. Then show request/data flow, failure boundaries, security, observability, deployment, recovery, and cost. These 22 scenarios provide starting designs—not universal answers.
+Before drawing, clarify users/traffic, data model and growth, consistency, compliance, dependencies, regions, RTO/RPO, budget, and team skills. Then show request/data flow, failure boundaries, security, observability, deployment, recovery, and cost. These 25 scenarios provide starting designs—not universal answers.
 
 ### AS01 — Highly available three-tier application
 
@@ -91,6 +91,18 @@ Before drawing, clarify users/traffic, data model and growth, consistency, compl
 ### AS22 — Platform degraded by dependency outage
 
 **Design:** Define critical dependencies; timeouts shorter than upstream budgets; bounded retries with jitter; circuit breakers, queues, caches/stale reads, bulkheads, load shedding, and honest degraded-mode UX. **Tradeoffs:** Staleness/partial functionality versus total outage. Exercise the exact failure mode.
+
+### AS23 — Secure secrets architecture
+
+**Design:** Workloads use Pod Identity, task roles or instance profiles to retrieve narrowly scoped Secrets Manager values at runtime; KMS key policy separates administration/use; rotation supports overlapping versions and client refresh; CloudTrail/detection monitors access. **Tradeoffs:** Runtime retrieval and rotation improve control but add KMS/secret-service dependency, caching and failure-mode design. Never bake values into images, Terraform state or CI logs.
+
+### AS24 — RDS high-availability architecture
+
+**Design:** Private Multi-AZ RDS/Aurora across appropriate AZs, DNS endpoint through bounded connection pools/RDS Proxy where suitable, tested automated backup/PITR, read replicas only for read scale/DR needs, encrypted secrets and SLO monitoring. **Tradeoffs:** Higher availability adds standby/replica cost and failover still interrupts connections; client retry/idempotency and timed exercises determine actual RTO.
+
+### AS25 — Private application with secure S3
+
+**Design:** Internal or controlled ingress reaches private compute across AZs; workloads use roles and an S3 gateway endpoint; bucket policy limits intended principals/path, Block Public Access remains on, SSE-KMS/versioning/retention protect data, and CloudTrail provides audit evidence. **Tradeoffs:** Private endpoints reduce internet/NAT exposure but add policy and DNS/routing dependencies; KMS adds control, cost and recovery requirements.
 
 ## Strong closing statement
 
