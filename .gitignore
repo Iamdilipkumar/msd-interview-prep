@@ -1,0 +1,21 @@
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Local environment and secret files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated output and temporary files
+output/
+tmp/
+*.tmp
+*.log
